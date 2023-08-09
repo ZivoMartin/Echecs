@@ -3,11 +3,11 @@ from PIL import Image, ImageTk
 
 class Game():
 
-    def __init__(self, chess_gestion, path_image):
+    def __init__(self, chess_gestion, ia, path_image):
         self.chess_gestion = chess_gestion
+        self.ia = ia
         self.path_image = path_image
-        self.window = tk.Tk()
-
+        self.window = tk.Tk()   
         self.window.title("Chess")
         self.width = 560
         self.height = 560
@@ -42,7 +42,11 @@ class Game():
         elif(self.cases[x][y]["blue"] or self.cases[x][y]["green"]):
             self.move_piece(self.current_piece["x"], self.current_piece["y"], x, y)
             self.reset_current_click_img_tab()
-            # self.player_turn = False
+            self.player_turn = False
+            tab_game = self.get_tab_game()
+            move_of_ia = self.ia.get_the_best_move(tab_game, {})
+            self.move_piece(move_of_ia["x1"], move_of_ia["y1"], move_of_ia["x2"], move_of_ia["y2"])
+            self.player_turn = True
             return
         self.reset_current_click_img_tab()
         piece = self.cases[x][y]["piece"] 
@@ -64,7 +68,8 @@ class Game():
     
 
     def move_piece(self, x1, y1, x2, y2):
-        if(self.cases[x2][y2]["blue"]):
+        color = self.cases[x1][y1]["color"]
+        if(self.cases[x2][y2]["color"] != "vide" and self.cases[x2][y2]["color"] != color):
             self.canvas.delete(self.cases[x2][y2]["image"])
             self.canvas.delete(self.cases[x2][y2]["blue_img"])
 
@@ -143,13 +148,13 @@ class Game():
             return (x-1, y-1)
         
     def init_possible_case(self, x, y):
-        if(x >= 0 and x <= 7 and y >= 0 and y <= 7 and self.move_is_possible(self.current_piece["x"], self.current_piece["y"], x, y)):
+        if(x >= 0 and x <= 7 and y >= 0 and y <= 7 and self.move_is_legal(self.current_piece["x"], self.current_piece["y"], x, y)):
             if(self.cases[x][y]["piece"] == "vide"):
                 self.cases[x][y]["green_img"] = self.canvas.create_image((x+1)*self.case_width+10, (y+1)*self.case_width+10,image=self.dico_img["green"], anchor="nw"), 
                 self.cases[x][y]["blue"] = False
                 self.cases[x][y]["green"] = True
                 return "valid"
-            elif(self.cases[x][y]["color"] == "black"):
+            else:
                 id = self.cases[x][y]["id"]
                 piece = self.cases[x][y]["piece"]
                 self.cases[x][y]["blue_img"] = self.canvas.create_image((x+1)*self.case_width+10, (y+1)*self.case_width+10,image=self.dico_img["blue"], anchor="nw")
@@ -159,23 +164,22 @@ class Game():
                 return "stop"
         return "unvalid"
     
-    def move_is_possible(self, x1, y1, x2, y2):
-        color = self.cases[x1][y1]["color"]
-        king_coord = {"x": -1, "y": -1}
-        temp_tab = [None]*8
+    def move_is_legal(self, x1, y1, x2, y2):
+        if(self.cases[x1][y1]["color"] == self.cases[x2][y2]["color"]):
+            return False
+        temp_tab = self.get_tab_game() 
+        temp_tab[x2][y2] = temp_tab[x1][y1]
+        temp_tab[x1][y1] = ["vide", "vide"]
+        return self.chess_gestion.move_is_legal(x1, y1, x2, y2, temp_tab, "white")
+
+    def get_tab_game(self):
+        tab = [None]*8
         for i in range(8):
-            temp_tab[i] = [None]*8
+            tab[i] = [None]*8
             for j in range(8):
-                if(self.cases[i][j]["piece"] == "king" and self.cases[i][j]["color"] == color):
-                    king_coord["x"] = i
-                    king_coord["y"] = j
-                temp_tab[i][j] = [self.cases[i][j]["piece"], self.cases[i][j]["color"]]
-        temp = temp_tab[x1][y1]
-        temp_tab[x1][y1] = temp_tab[x2][y2]
-        temp_tab[x2][y2] = temp
-        return self.chess_gestion.move_is_possible(x1, y1, x2, y2, temp_tab, color, king_coord)
-
-
+                tab[i][j] = [self.cases[i][j]["piece"], self.cases[i][j]["color"]]
+        return tab
+    
     def click_on_king(self, x, y):
         for i in range(-1, 2):
             for j in range(-1, 2):
@@ -198,9 +202,11 @@ class Game():
 
     def click_on_knight(self, x, y):
         for i in range(-2, 3):
-            if(i != 0):
-                self.init_possible_case(x+i, y + (3 - abs(i)))
-                self.init_possible_case(x+i, y - (3 - abs(i)))
+            if(i != 0 and x+i<8 and x+i >= 0):
+                if(y + (3 - abs(i)) < 8):
+                    self.init_possible_case(x+i, y + (3 - abs(i)))
+                if(y - (3 - abs(i)) >= 0):
+                    self.init_possible_case(x+i, y - (3 - abs(i)))
 
     
 
