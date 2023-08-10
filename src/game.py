@@ -44,7 +44,9 @@ class Game():
             self.reset_current_click_img_tab()
             self.player_turn = False
             tab_game = self.get_tab_game()
-            move_of_ia = self.ia.get_the_best_move(tab_game, {})
+            move_of_ia = self.ia.get_the_best_move(tab_game, {}, "black")
+            if(move_of_ia == "loose" or move_of_ia == "draw"):
+                return
             self.move_piece(move_of_ia["x1"], move_of_ia["y1"], move_of_ia["x2"], move_of_ia["y2"])
             self.player_turn = True
             return
@@ -168,8 +170,6 @@ class Game():
         if(self.cases[x1][y1]["color"] == self.cases[x2][y2]["color"]):
             return False
         temp_tab = self.get_tab_game() 
-        temp_tab[x2][y2] = temp_tab[x1][y1]
-        temp_tab[x1][y1] = ["vide", "vide"]
         return self.chess_gestion.move_is_legal(x1, y1, x2, y2, temp_tab, "white")
 
     def get_tab_game(self):
