@@ -1,18 +1,10 @@
-# Deuxieme idée, si on s'interesse à l'architecture du code, on remarque que ca pourrait etre
-# une unique grande fonction, en gros, faire plusieurs fonction ne sert qu'a rendre le code plus lisible,
-# ce qui signifie qu'il n'est absolument pas dérengant de lancer la recursivité à l'interieur de la fonction la plus
-# profonde, soit count_the_possibles_moves_of_this_piece. Donc en modifiant un minimum l'architecture du programme,
-# il n'est pas possible de mettre cases, data, scores, moves en attribut de la classe, il est possible sans probleme
-# de lancer une recursivité profonde et plutôt optimisée.
-
-
 class Ia:
 
     def __init__(self, chess_gestion):
         self.chess_gestion = chess_gestion
         
 
-    def get_the_best_move(self, bad_tab, data, color):
+    def get_the_best_move(self, bad_tab, data, color, repeat):
         cases = [None]*8
         for i in range(8):
             cases[i] = [None]*8
@@ -21,34 +13,40 @@ class Ia:
         scores = []
         moves = []
         self.color = color
+        
         if(self.color == "black"):
-
             self.no_color = "white"
         else:
             self.no_color = "black"
+        count = 0
         for i in range(8):
             for j in range(8):
                 if(cases[i][j][1] == self.color):
                     possible_moves = self.get_possible_moves(i, j, cases)
                     size = len(possible_moves)
+                    count += size
                     for k in range(size):
-                        the_move = possible_moves[k]
-                        if(self.chess_gestion.move_is_legal(the_move["x1"], the_move["y1"], the_move["x2"], the_move["y2"], cases, self.color)):
-                            self.new_move(possible_moves[k], moves, scores, cases)
+                        self.new_move(possible_moves[k], moves, scores, cases, repeat)
+                        if(cases[possible_moves[k]["x2"]][possible_moves[k]["y2"]][1] == self.no_color):
+                            count += self.get_val(cases[possible_moves[k]["x2"]][possible_moves[k]["y2"]][0])
+        count = repeat
         size = len(scores)
         if(size > 0): 
             max_score = max(scores)
             for i in range(size):
                 if(scores[i] == max_score):
-                    return moves[i]
+                    if(repeat == 1):
+                        return (moves[i], scores[i])
+                    else:
+                        return (moves[i], scores[i]+count)
         elif(not self.chess_gestion.move_is_legal(0, 0, 0, 0, cases, self.color)):
-            return "loose"
+            return ("loose", "loose")
         else:
-            return "draw"
-            
-            
-    def new_move(self, move, moves, scores, cases):
-        scores.append(self.score_of_the_move(cases, move["x1"], move["y1"], move["x2"], move["y2"], 1))
+            return ("draw", "draw")
+        
+
+    def new_move(self, move, moves, scores, cases, repeat):
+        scores.append(self.score_of_the_move(cases, move["x1"], move["y1"], move["x2"], move["y2"], repeat))
         moves.append(self.get_move_object(move["x1"], move["y1"], move["x2"], move["y2"]))
 
     def get_move_object(self, x1, y1, x2, y2):
@@ -59,7 +57,7 @@ class Ia:
             "y2": y2
         }
 
-    def score_of_the_move(self, cases, x1, y1, x2, y2, diviseur):
+    def score_of_the_move(self, cases, x1, y1, x2, y2, repeat):
         temp_tab = [None]*8
         for i in range(8):
             temp_tab[i] = [None]*8
@@ -67,20 +65,37 @@ class Ia:
                 temp_tab[i][j] = [cases[i][j][0], cases[i][j][1]]
         score = 0
         if(temp_tab[x2][y2][1] == self.no_color):
-            score += self.get_val(temp_tab[x2][y2][0])*40
-        temp_tab[x2][y2] = temp_tab[x1][y1]
+            if(self.color == "black"):
+                score += self.get_val(temp_tab[x2][y2][0])*40
+            if(self.color == "white"):
+                score += self.get_val(temp_tab[x2][y2][0])*40
+        temp_tab[x2][y2] = [temp_tab[x1][y1][0], temp_tab[x1][y1][1]]
         temp_tab[x1][y1] = ["vide", "vide"]
-        score += self.count_possible_move(temp_tab)
-        if(self.color == "black"):
-            move_of_white =  self.get_the_best_move(cases, {}, "white")
-            if(move_of_white == "loose"):
-                score += 1500
-            elif(move_of_white != "draw"):
-                score -= self.get_val(cases[move_of_white["x2"]][move_of_white["y2"]][0]) * 50
+        if((self.color == "black" and repeat < 3) or (self.color == "white" and repeat < 2)):
+            if(self.color == "white"):
+                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, 3)
+            else:
+                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, 1)
+            if(move_of_opponent == "loose"):
+                score += 100000
+                return score
+            elif(move_of_opponent != "draw"):
+                score -= score_of_opponent
             temp = self.color
             self.color = self.no_color
             self.no_color = temp
-        return score/diviseur
+            if(self.color == "black"):
+                temp = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
+                temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]] = [temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][0], temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][1]]
+                temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = ["vide", "vide"]
+                move, second_score = self.get_the_best_move(temp_tab, {}, self.color, repeat + 1)
+                temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
+                temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp[0], temp[1]]
+                if(second_score == "loose"):
+                    score -= 100000
+                elif(second_score != "draw"):
+                    score += second_score
+        return score
 
     def count_possible_move(self, tab):
         count = 0
@@ -88,12 +103,12 @@ class Ia:
             for j in range(8):
                 if(tab[i][j][1] == self.color):
                     count += self.count_the_possibles_moves_of_this_piece(tab, i, j) 
-        return count
+        return count//5
     
     def count_the_possibles_moves_of_this_piece(self, tab, x, y):
-        factor = 3
+        factor = 2
         if(tab[x][y][0] == "pown"):
-            factor = 7
+            factor = 3
         elif(tab[x][y][0] == "rook" or tab[x][y][0] == "queen" or tab[x][y][0] == "king"):
             factor = 1
         count = 0
@@ -104,6 +119,8 @@ class Ia:
             this_case = tab[possible_moves[i]["x2"]][possible_moves[i]["y2"]]
             if(this_case[1] == self.no_color):
                 count += factor*self.get_val(this_case[0])/2
+            if(tab[x][y][0] == "pown"):
+                count += abs(y-possible_moves[i]["y2"])
         return count
 
 
@@ -111,22 +128,32 @@ class Ia:
         piece = cases[x][y][0]
         possible_moves = []
         if(piece == "pown"):
-            if(y<7):
-                if(cases[x][y+1][0] == "vide"):
-                    possible_moves.append(self.get_move_object(x, y, x, y+1))
-                    if(y == 1 and cases[x][3][0] == "vide"):
-                        possible_moves.append(self.get_move_object(x, 1, x, 3))
-                if(x<7 and cases[x+1][y+1][1] == self.no_color):
-                    possible_moves.append(self.get_move_object(x, y, x+1, y+1))
-                if(x>0 and cases[x-1][y+1][1] == self.no_color):
-                    possible_moves.append(self.get_move_object(x, y, x-1, y+1))
+            if(self.color == "black" and y<7):
+                    if(cases[x][y+1][0] == "vide" and self.chess_gestion.move_is_legal(x, y, x, y+1, cases, self.color)):
+                        possible_moves.append(self.get_move_object(x, y, x, y+1))
+                        if(y == 1 and cases[x][3][0] == "vide" and self.chess_gestion.move_is_legal(x, 1, x, 3, cases, self.color)):
+                            possible_moves.append(self.get_move_object(x, 1, x, 3))
+                    if(x<7 and cases[x+1][y+1][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, x+1, y+1, cases, self.color)):
+                        possible_moves.append(self.get_move_object(x, y, x+1, y+1))
+                    if(x>0 and cases[x-1][y+1][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, x-1, y+1, cases, self.color)):
+                        possible_moves.append(self.get_move_object(x, y, x-1, y+1))
+            elif(self.color == "white" and y>0):
+                if(cases[x][y-1][0] == "vide" and self.chess_gestion.move_is_legal(x, y, x, y-1, cases, self.color)):
+                    possible_moves.append(self.get_move_object(x, y, x, y-1))
+                    if(y == 6 and cases[x][4][0] == "vide" and self.chess_gestion.move_is_legal(x, 6, x, 4, cases, self.color)):
+                        possible_moves.append(self.get_move_object(x, 6, x, 4))
+                if(x<7 and cases[x+1][y-1][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, x+1, y-1, cases, self.color)):
+                    possible_moves.append(self.get_move_object(x, y, x+1, y-1))
+                if(x>0 and cases[x-1][y-1][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, x-1, y-1, cases, self.color)):
+                    possible_moves.append(self.get_move_object(x, y, x-1, y-1))
+
         elif(piece ==  "knight"):
             for i in range(-2, 3):
                 xi = x+i
                 if(i != 0 and xi<8 and xi >= 0):
-                    if(y + (3 - abs(i)) < 8 and cases[xi][y + (3 - abs(i))][1] != self.color):
+                    if(y + (3 - abs(i)) < 8 and cases[xi][y + (3 - abs(i))][1] != self.color and self.chess_gestion.move_is_legal(x, y, xi, y + (3 - abs(i)), cases, self.color)):
                         possible_moves.append(self.get_move_object(x, y, xi, y + (3 - abs(i))))
-                    if(y - (3 - abs(i)) >= 0 and cases[xi][y - (3 - abs(i))][1] != self.color):
+                    if(y - (3 - abs(i)) >= 0 and cases[xi][y - (3 - abs(i))][1] != self.color and self.chess_gestion.move_is_legal(x, y, xi, y - (3 - abs(i)), cases, self.color)):
                         possible_moves.append(self.get_move_object(x, y, xi, y - (3 - abs(i))))
         elif(piece == "beshop"):
             self.get_diag_move(cases, possible_moves, x, y)
@@ -138,7 +165,7 @@ class Ia:
         else:
             for i in range(-1, 2):
                 for j in range(-1, 2):
-                    if((i != 0 or j != 0) and self.coord_valid(x+i, y+j) and cases[x+i][y+j][1] != self.color):
+                    if((i != 0 or j != 0) and self.coord_valid(x+i, y+j) and cases[x+i][y+j][1] != self.color and self.chess_gestion.move_is_legal(x, y, x+i, y+j, cases, self.color)):
                         possible_moves.append(self.get_move_object(x, y, x+i, y+j))
         return possible_moves
     
@@ -162,59 +189,67 @@ class Ia:
         i = x+1
         j = y+1
         while(self.coord_valid(i, j) and cases[i][j][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, i, j))
+            if(self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, i, j))
             i += 1
             j += 1
-        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color):
+        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, i, j))
         i = x-1
         j = y - 1        
         while(self.coord_valid(i, j) and cases[i][j][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, i, j))
+            if(self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, i, j))
             i -= 1
             j -= 1
-        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color):
+        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, i, j))
         i = x-1
         j = y+1    
         while(self.coord_valid(i, j) and cases[i][j][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, i, j))
+            if(self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, i, j))
             i -= 1
             j += 1
-        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color):
+        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, i, j))
         i = x+1
         j = y-1    
         while(self.coord_valid(i, j) and cases[i][j][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, i, j))
+            if(self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, i, j))
             i += 1
             j -= 1
-        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color):
+        if(self.coord_valid(i, j) and cases[i][j][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, i, j, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, i, j))
         
     def get_line_move(self, cases, possible_moves, x, y):
         i = x+1
         while(self.coord_valid(i, y) and cases[i][y][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, i, y))
+            if(self.chess_gestion.move_is_legal(x, y, i, y, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, i, y))
             i += 1
-        if(self.coord_valid(i, y) and cases[i][y][1] == self.no_color):
+        if(self.coord_valid(i, y) and cases[i][y][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, i, y, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, i, y))
         i = x-1
         while(self.coord_valid(i, y) and cases[i][y][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, i, y))
+            if(self.chess_gestion.move_is_legal(x, y, i, y, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, i, y))
             i -= 1
-        if(self.coord_valid(i, y) and cases[i][y][1] == self.no_color):
+        if(self.coord_valid(i, y) and cases[i][y][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, i, y, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, i, y))
         i = y+1
         while(self.coord_valid(x, i) and cases[x][i][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, x, i))
+            if(self.chess_gestion.move_is_legal(x, y, x, i, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, x, i))
             i += 1
-        if(self.coord_valid(x, i) and cases[x][i][1] == self.no_color):
+        if(self.coord_valid(x, i) and cases[x][i][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, x, i, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, x, i))
         i = y-1
         while(self.coord_valid(x, i) and cases[x][i][0] == "vide"):
-            possible_moves.append(self.get_move_object(x, y, x, i))
+            if(self.chess_gestion.move_is_legal(x, y, x, i, cases, self.color)):
+                possible_moves.append(self.get_move_object(x, y, x, i))
             i -= 1
-        if(self.coord_valid(x, i) and cases[x][i][1] == self.no_color):
+        if(self.coord_valid(x, i) and cases[x][i][1] == self.no_color and self.chess_gestion.move_is_legal(x, y, x, i, cases, self.color)):
             possible_moves.append(self.get_move_object(x, y, x, i))
         return possible_moves

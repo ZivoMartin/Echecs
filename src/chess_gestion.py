@@ -1,8 +1,7 @@
 class ChessGestion:
 
     def __init__(self):
-        self.color = "white"
-        self.no_color = "black"
+        pass
     
     def move_is_legal(self, x1, y1, x2, y2, bad_tab, color):
         tab_case = [None]*8
@@ -12,12 +11,13 @@ class ChessGestion:
                 tab_case[i][j] = [bad_tab[i][j][0], bad_tab[i][j][1]]
         tab_case[x2][y2] = [tab_case[x1][y1][0], tab_case[x1][y1][1]]
         tab_case[x1][y1] = ["vide", "vide"]
+        
         self.color = color
         if(self.color == "white"):
             self.no_color = "black"
         else:
             self.no_color = "white"
-        coord_queen, coord_rooks, coord_beshops, coord_king = self.init_coords(tab_case)
+        coord_queen, coord_rooks, coord_beshops, coord_king = self.init_coords(tab_case)  
         xk = coord_king["x"]
         yk = coord_king["y"]
         for i in range(-1, 2):

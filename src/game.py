@@ -1,5 +1,6 @@
 import tkinter as tk
 from PIL import Image, ImageTk
+import threading
 
 class Game():
 
@@ -17,9 +18,10 @@ class Game():
         self.current_piece = {}
         self.player_turn = True
         self.player_can_big_castling = True
+        self.ia_playing = True
         self.player_can_short_castling = True
         self.dico_img = {
-            "green": self.get_img(self.case_width-20, self.case_width-20, "green.jpg"),
+            "green": self.get_img(self.case_width-20, self.case_width-20, "dark_green.jpg"),
             "blue" : self.get_img(self.case_width-20, self.case_width-20, "blue.jpg")
             }
         self.current_click_img = []
@@ -32,9 +34,13 @@ class Game():
         self.canvas = tk.Canvas(self.window, width=self.width, height=self.height)
         self.canvas.pack()    
         self.canvas.bind("<Button-1>", lambda event: self.click_on_canvas(event))
+        self.window.bind("<KeyPress-q>", lambda event: self.active_ia(event))
         self.init_game()
         self.window.mainloop()
     
+    def active_ia(self, event):
+        self.ia_playing = True
+
     def click_on_canvas(self, event):
         x, y = self.convert_clic_to_indice(event.x, event.y)
         if(x == "out" or (self.cases[x][y]["piece"] == "vide" and not self.cases[x][y]["green"]) or not self.player_turn):
@@ -42,13 +48,10 @@ class Game():
         elif(self.cases[x][y]["blue"] or self.cases[x][y]["green"]):
             self.move_piece(self.current_piece["x"], self.current_piece["y"], x, y)
             self.reset_current_click_img_tab()
-            self.player_turn = False
-            tab_game = self.get_tab_game()
-            move_of_ia = self.ia.get_the_best_move(tab_game, {}, "black")
-            if(move_of_ia == "loose" or move_of_ia == "draw"):
-                return
-            self.move_piece(move_of_ia["x1"], move_of_ia["y1"], move_of_ia["x2"], move_of_ia["y2"])
-            self.player_turn = True
+            self.window.update()
+            ia_thread = threading.Thread(target=self.ia_play)
+            ia_thread.start()
+            print("\n")
             return
         self.reset_current_click_img_tab()
         piece = self.cases[x][y]["piece"] 
@@ -67,6 +70,15 @@ class Game():
             elif(piece == "queen"):
                 self.click_on_queen(x, y)
         
+    def ia_play(self):
+        self.player_turn = False
+        if(self.ia_playing):
+            tab_game = self.get_tab_game()
+            move_of_ia, score = self.ia.get_the_best_move(tab_game, {}, "black", 1)
+            if(move_of_ia == "loose" or move_of_ia == "draw"):
+                return
+            self.move_piece(move_of_ia["x1"], move_of_ia["y1"], move_of_ia["x2"], move_of_ia["y2"])
+        self.player_turn = True
     
 
     def move_piece(self, x1, y1, x2, y2):
@@ -150,20 +162,24 @@ class Game():
             return (x-1, y-1)
         
     def init_possible_case(self, x, y):
-        if(x >= 0 and x <= 7 and y >= 0 and y <= 7 and self.move_is_legal(self.current_piece["x"], self.current_piece["y"], x, y)):
+        if(x >= 0 and x <= 7 and y >= 0 and y <= 7):
+            if(self.move_is_legal(self.current_piece["x"], self.current_piece["y"], x, y)):
+                if(self.cases[x][y]["piece"] == "vide"):
+                    self.cases[x][y]["green_img"] = self.canvas.create_image((x+1)*self.case_width+10, (y+1)*self.case_width+10,image=self.dico_img["green"], anchor="nw"), 
+                    self.cases[x][y]["blue"] = False
+                    self.cases[x][y]["green"] = True
+                    return "valid"
+                else:
+                    print("ok\n")
+                    id = self.cases[x][y]["id"]
+                    piece = self.cases[x][y]["piece"]
+                    self.cases[x][y]["blue_img"] = self.canvas.create_image((x+1)*self.case_width+10, (y+1)*self.case_width+10,image=self.dico_img["blue"], anchor="nw")
+                    self.canvas.delete(self.cases[x][y]["image"])
+                    self.cases[x][y]["image"] = self.canvas.create_image((x+1)*self.case_width, (y+1)*self.case_width,image=self.dico_img[piece+"_black"+str(id)], anchor="nw")
+                    self.cases[x][y]["blue"] = True
+                    return "stop"
             if(self.cases[x][y]["piece"] == "vide"):
-                self.cases[x][y]["green_img"] = self.canvas.create_image((x+1)*self.case_width+10, (y+1)*self.case_width+10,image=self.dico_img["green"], anchor="nw"), 
-                self.cases[x][y]["blue"] = False
-                self.cases[x][y]["green"] = True
                 return "valid"
-            else:
-                id = self.cases[x][y]["id"]
-                piece = self.cases[x][y]["piece"]
-                self.cases[x][y]["blue_img"] = self.canvas.create_image((x+1)*self.case_width+10, (y+1)*self.case_width+10,image=self.dico_img["blue"], anchor="nw")
-                self.canvas.delete(self.cases[x][y]["image"])
-                self.cases[x][y]["image"] = self.canvas.create_image((x+1)*self.case_width, (y+1)*self.case_width,image=self.dico_img[piece+"_black"+str(id)], anchor="nw")
-                self.cases[x][y]["blue"] = True
-                return "stop"
         return "unvalid"
     
     def move_is_legal(self, x1, y1, x2, y2):
