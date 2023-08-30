@@ -5,10 +5,10 @@ import os
 
 
 def main():
-        image_path = os.path.dirname(os.path.dirname(__file__)) + "/Echecs/images/"
+        path = os.path.dirname(os.path.dirname(__file__)) + "/Echecs/"
         chess_gestion = ChessGestion()
         ia = Ia(chess_gestion)
-        Game(chess_gestion, ia, image_path) 
+        Game(chess_gestion, ia, path) 
 
 
 if __name__ == "__main__":

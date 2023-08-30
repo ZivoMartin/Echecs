@@ -11,7 +11,6 @@ class ChessGestion:
                 tab_case[i][j] = [bad_tab[i][j][0], bad_tab[i][j][1]]
         tab_case[x2][y2] = [tab_case[x1][y1][0], tab_case[x1][y1][1]]
         tab_case[x1][y1] = ["vide", "vide"]
-        
         self.color = color
         if(self.color == "white"):
             self.no_color = "black"

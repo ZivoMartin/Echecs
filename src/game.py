@@ -1,13 +1,15 @@
 import tkinter as tk
 from PIL import Image, ImageTk
+from playsound import playsound
 import threading
 
 class Game():
 
-    def __init__(self, chess_gestion, ia, path_image):
+    def __init__(self, chess_gestion, ia, path):
         self.chess_gestion = chess_gestion
         self.ia = ia
-        self.path_image = path_image
+        self.path_image = path + "images/"
+        self.path_sound = path + "sounds/"
         self.window = tk.Tk()   
         self.window.title("Chess")
         self.width = 560
@@ -82,6 +84,12 @@ class Game():
     
 
     def move_piece(self, x1, y1, x2, y2):
+        if(self.cases[x2][y2]["piece"] != "vide" and self.cases[x1][y1]["color"] == "black"):
+            print("1")
+            self.play_a_sound("capture.mp3")
+        elif(self.cases[x1][y1]["color"] == "black"):
+            print("2")
+            self.play_a_sound("move_self.mp3")
         color = self.cases[x1][y1]["color"]
         if(self.cases[x2][y2]["color"] != "vide" and self.cases[x2][y2]["color"] != color):
             self.canvas.delete(self.cases[x2][y2]["image"])
@@ -208,9 +216,10 @@ class Game():
 
     def click_on_pown(self, x, y):
         if(self.cases[x][y-1]["piece"] == "vide"):
+            if(y == 6 and self.cases[x][4]["piece"] == "vide"):
+                self.init_possible_case(x, 4)
             self.init_possible_case(x, y-1)
-        if(y == 6):
-            self.init_possible_case(x, 4)
+        
         if(x != 7 and self.cases[x+1][y-1]["piece"] != "vide"):
             self.init_possible_case(x+1, y-1)
         if(x != 0 and self.cases[x-1][y-1]["piece"] != "vide"):
@@ -322,5 +331,13 @@ class Game():
         img = img.resize((width, height), Image.Resampling.LANCZOS)
         img = ImageTk.PhotoImage(img)
         return img
+
+    def play_a_sound(self, sound):
+        # sound_thread = threading.Thread(target=lambda: self.sound_thread_function(sound))
+        # sound_thread.start()
+        pass
+
+    def sound_thread_function(self, sound):
+        playsound(self.path_sound+sound)
 
 

@@ -1,3 +1,4 @@
+
 class Ia:
 
     def __init__(self, chess_gestion):
@@ -29,7 +30,6 @@ class Ia:
                         self.new_move(possible_moves[k], moves, scores, cases, repeat)
                         if(cases[possible_moves[k]["x2"]][possible_moves[k]["y2"]][1] == self.no_color):
                             count += self.get_val(cases[possible_moves[k]["x2"]][possible_moves[k]["y2"]][0])
-        count = repeat
         size = len(scores)
         if(size > 0): 
             max_score = max(scores)
@@ -73,9 +73,9 @@ class Ia:
         temp_tab[x1][y1] = ["vide", "vide"]
         if((self.color == "black" and repeat < 3) or (self.color == "white" and repeat < 2)):
             if(self.color == "white"):
-                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, 3)
+                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, 10)
             else:
-                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, 1)
+                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, repeat)
             if(move_of_opponent == "loose"):
                 score += 100000
                 return score
@@ -85,12 +85,14 @@ class Ia:
             self.color = self.no_color
             self.no_color = temp
             if(self.color == "black"):
-                temp = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
-                temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]] = [temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][0], temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][1]]
-                temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = ["vide", "vide"]
-                move, second_score = self.get_the_best_move(temp_tab, {}, self.color, repeat + 1)
-                temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
-                temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp[0], temp[1]]
+                second_score = 0
+                if(repeat < 3):
+                    temp = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
+                    temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]] = [temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][0], temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][1]]
+                    temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = ["vide", "vide"]
+                    move, second_score = self.get_the_best_move(temp_tab, {}, self.color, repeat + 1)
+                    temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
+                    temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp[0], temp[1]]
                 if(second_score == "loose"):
                     score -= 100000
                 elif(second_score != "draw"):
