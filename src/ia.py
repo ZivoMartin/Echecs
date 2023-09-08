@@ -71,32 +71,15 @@ class Ia:
                 score += self.get_val(temp_tab[x2][y2][0])*40
         temp_tab[x2][y2] = [temp_tab[x1][y1][0], temp_tab[x1][y1][1]]
         temp_tab[x1][y1] = ["vide", "vide"]
-        if((self.color == "black" and repeat < 3) or (self.color == "white" and repeat < 2)):
-            if(self.color == "white"):
-                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, 10)
-            else:
-                move_of_opponent, score_of_opponent =  self.get_the_best_move(temp_tab, {}, self.no_color, repeat)
-            if(move_of_opponent == "loose"):
-                score += 100000
-                return score
-            elif(move_of_opponent != "draw"):
-                score -= score_of_opponent
+        if(repeat < 2):
             temp = self.color
             self.color = self.no_color
             self.no_color = temp
-            if(self.color == "black"):
-                second_score = 0
-                if(repeat < 3):
-                    temp = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
-                    temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]] = [temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][0], temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]][1]]
-                    temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = ["vide", "vide"]
-                    move, second_score = self.get_the_best_move(temp_tab, {}, self.color, repeat + 1)
-                    temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][0], temp_tab[move_of_opponent["x2"]][move_of_opponent["y2"]][1]]
-                    temp_tab[move_of_opponent["x1"]][move_of_opponent["y1"]] = [temp[0], temp[1]]
-                if(second_score == "loose"):
-                    score -= 100000
-                elif(second_score != "draw"):
-                    score += second_score
+            move, second_score = self.get_the_best_move(temp_tab, {}, self.color, repeat + 1)
+            if(second_score == "loose"):
+                score += 10000000
+            elif(second_score != "draw"):
+                score -= second_score
         return score
 
     def count_possible_move(self, tab):
