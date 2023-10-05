@@ -10,6 +10,6 @@ def main():
         ia = Ia(chess_gestion)
         Game(chess_gestion, ia, path) 
 
-#test
+
 if __name__ == "__main__":
     main()

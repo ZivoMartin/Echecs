@@ -1,6 +1,5 @@
 import tkinter as tk
 from PIL import Image, ImageTk
-from playsound import playsound
 import threading
 
 class Game():
@@ -23,7 +22,7 @@ class Game():
         self.ia_playing = True
         self.player_can_short_castling = True
         self.dico_img = {
-            "green": self.get_img(self.case_width-20, self.case_width-20, "dark_green.jpg"),
+            "green": self.get_img(self.case_width-20, self.case_width-20, "green.jpg"),
             "blue" : self.get_img(self.case_width-20, self.case_width-20, "blue.jpg")
             }
         self.current_click_img = []
